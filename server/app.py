@@ -30,18 +30,33 @@ def bakeries():
     )
     return response
 
-@app.route('/bakeries/<int:id>')
+@app.route('/bakeries/<int:id>',methods = ["PATCH"])
 def bakery_by_id(id):
 
     bakery = Bakery.query.filter_by(id=id).first()
-    bakery_serialized = bakery.to_dict()
+    if request.method == "GET":
 
-    response = make_response(
-        bakery_serialized,
-        200
-    )
-    return response
+        bakery_serialized = bakery.to_dict()
 
+        response = make_response(
+            bakery_serialized,
+            200
+        )
+        return response
+    elif request.method == "PATCH":
+        for attr in request.form:
+            setattr(bakery, attr, request.form.get(attr))
+        db.session.add(bakery)
+        db.session.commit()
+        bakery_serialized = bakery.to_dict()
+
+        response = make_response(
+            bakery_serialized,
+            200
+        )
+
+        return response
+    
 @app.route('/baked_goods/by_price')
 def baked_goods_by_price():
     baked_goods_by_price = BakedGood.query.order_by(BakedGood.price).all()
@@ -65,6 +80,35 @@ def most_expensive_baked_good():
         200
     )
     return response
+@app.route("/baked_goods",methods = ["POST"])
+def baked_goods():
+    new_baked = BakedGood(
+        name = request.form['name'],
+        price = request.form['price'],
+        bakery_id = request.form['bakery_id']
+    )
+    db.session.add(new_baked)
+    db.session.commit()
 
+    new_baked_dict = new_baked.to_dict()
+    response = make_response(new_baked_dict,201)
+    return response
+@app.route("/baked_goods/<int:id>",methods=['DELETE'])
+def deelete_baked_food(id):
+    baked = BakedGood.query.filter_by(id=id).first()\
+    
+    if baked:
+        db.session.delete(baked)
+        db.session.commit()
+        response_body = {
+            "delete_successful": True,
+            "message": "deleted."    
+        }
+        response = make_response(
+            jsonify(response_body),
+            200
+        )
+
+    return response
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
